@@ -1,5 +1,5 @@
 /**
- * 🎬 발표 시연용 메인 (1막 ~ 에필로그)
+ * 🎬 발표 시연용 메인 (1막 ~ 시즌 2)
  * 실행: javac *.java && java Main
  */
 public class Main {
@@ -12,6 +12,7 @@ public class Main {
         // 같은 클래스(틀)로 서로 다른 객체(사람) 두 명을 만들어요
         InstaAccount me = new InstaAccount("나", "new_me_2026", "real_diary_only");
         InstaAccount ex = new InstaAccount("전애인", "ex_boy_99", "ex_boy_sub");
+        System.out.println("✅ 계정 2개 개설 완료");
         me.introduce();
         ex.introduce();
 
@@ -34,9 +35,9 @@ public class Main {
         // 👇 발표 때 주석을 하나씩 풀어서 빨간 줄(컴파일 에러)을 보여주세요!
         // System.out.println(me.subId);       // error: subId has private access
         // System.out.println(me.getSubId());  // error: cannot find symbol
-        // me.blockedId = "";                  // error: blockedId has private access
+        // me.blockedIds[0] = "";              // error: blockedIds has private access
         System.out.println("🔐 전애인의 부계 탐색 실패: 부계는 private입니다");
-        System.out.println("🔐 전애인의 차단 해제 실패: setter가 없습니다");
+        System.out.println("🔐 전애인의 차단 해제 실패: 차단 목록은 private입니다");
 
         // =====================================================
         System.out.println("\n🎬 4막 · 캡슐화가 무너진 세계");
@@ -47,18 +48,28 @@ public class Main {
 
         // 필드가 public이라 전애인이 밖에서 마음대로...
         System.out.println("😈 전애인: 부계 찾았다 → @" + leakyMe.subId);
-        leakyMe.blockedId = "";
-        System.out.println("😈 전애인: 차단 셀프 해제 완료");
+        leakyMe.blockedIds[0] = "";
+        System.out.println("😈 전애인: 차단 목록 셀프 삭제 완료");
         leakyMe.receiveDM(leakyEx, "자니?", 3);
         System.out.println("💥 캡슐화가 무너지면 이렇게 됩니다...");
 
         // =====================================================
-        System.out.println("\n🎬 에필로그 · 떡밥");
+        System.out.println("\n🎬 시즌 2 · 부계로 돌아온 전 애인");
         System.out.println("=====================================");
-        // 전애인이 자기 부계로 새 객체를 만들어 접근한다면?
-        InstaAccount exSub = new InstaAccount("전애인", "ex_boy_sub", "none");
-        me.viewFeed(exSub);
-        System.out.println("🤔 차단은 한 명만 저장돼요... 여러 명을 막으려면?");
-        System.out.println("   → 다음 챕터에서 계속 (To be continued)");
+        // 전애인이 자기 부계로 새 계정(객체)을 만들어 접근
+        InstaAccount exSub = new InstaAccount("전애인", "ex_boy_sub", "ex_boy_sub2");
+        me.viewFeed(exSub);                  // 부계는 아직 차단 전 → 보임
+        me.receiveDM(exSub, "나 부계야 자니?", 4); // 또 새벽 자니 → 부계도 자동 차단
+        me.viewFeed(exSub);                  // 이제 부계도 안 보임
+
+        // 배열이라 여러 명 차단 가능! 검증도 같이 확인
+        me.block("ex_boy_99");               // 이미 차단한 사람 → 중복 거부
+        me.block("new_me_2026");             // 내 계정 → 거부
+        me.block("ex_bestie_01");            // 전애인 절친
+        me.block("ex_mom_account");          // 전애인 엄마 계정(?)
+        me.block("ad_bot_777");              // 광고 봇
+        me.block("one_more_spy");            // 6번째 → 꽉 참
+        me.printBlockList();
+        System.out.println("🌱 이제 진짜 새 출발");
     }
 }
