@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>교수님, 제 부계는 private입니다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBEFF3; --ink:#2B1631; --pink:#FF2E6E; --red:#E0242F;
+  --night:#1E1638; --lilac:#C9B6E4; --soft:#F3D9E3; --mute:#7A5C80;
+  --display:"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"Malgun Gothic",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{word-break:keep-all;height:100%;background:#120C22;overflow:hidden;font-family:var(--body);color:var(--ink)}
+#viewport{position:fixed;inset:0;display:grid;place-items:center}
+#stage{width:1280px;height:720px;position:relative;background:var(--paper);overflow:hidden;transform-origin:center;border-radius:6px;transition:background .5s}
+#stage.night{background:var(--night);color:#F4EAF7}
+
+/* 인스타 스토리 진행 바 */
+#bars{position:absolute;top:18px;left:28px;right:28px;display:flex;gap:5px;z-index:10}
+#bars button{flex:1;height:4px;border:0;border-radius:2px;background:rgba(43,22,49,.18);cursor:pointer;padding:0}
+#bars button.done{background:var(--ink)}
+#bars button.now{background:var(--pink)}
+#stage.night #bars button{background:rgba(255,255,255,.2)}
+#stage.night #bars button.done{background:#F4EAF7}
+#stage.night #bars button.now{background:var(--pink)}
+#bars button:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+
+#who{position:absolute;top:34px;left:28px;display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;z-index:10}
+#who .av{width:30px;height:30px;border-radius:50%;background:conic-gradient(var(--pink),#FFB347,var(--pink));padding:2px}
+#who .av i{display:block;width:100%;height:100%;border-radius:50%;background:var(--paper);border:2px solid var(--paper)}
+#stage.night #who .av i{background:var(--night);border-color:var(--night)}
+#who span{opacity:.6;font-weight:400}
+
+.slide{position:absolute;inset:0;padding:92px 80px 60px;display:none}
+.slide.on{display:block;animation:in .35s ease-out}
+@keyframes in{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.slide.on{animation:none}.stamp{animation:none!important}}
+
+h1,h2{font-family:var(--display);font-weight:400;letter-spacing:-.01em;line-height:1.1}
+h2{font-size:52px;margin-bottom:28px}
+.lead{font-size:22px;line-height:1.6;max-width:760px;color:var(--mute)}
+.night .lead{color:var(--lilac)}
+p,li,td,th{font-size:20px;line-height:1.6}
+
+/* 표지 */
+.cover h1{font-size:104px;line-height:1.02;margin-top:40px}
+.cover .sub{font-size:28px;margin-top:26px;font-weight:500}
+.cover .meta{position:absolute;left:80px;bottom:60px;font-size:18px;color:var(--mute)}
+.notfound{position:absolute;right:80px;top:150px;width:300px;height:420px;border:3px solid var(--ink);border-radius:36px;display:grid;place-items:center;text-align:center;padding:30px;transform:rotate(4deg);background:#fff}
+.notfound b{display:block;font-size:22px;margin-bottom:10px}
+.notfound small{font-size:15px;color:var(--mute);line-height:1.5}
+
+/* 범위 */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:10px}
+.chip{border:2px solid var(--ink);border-radius:22px;padding:28px 30px;background:#fff}
+.chip h3{font-family:var(--display);font-weight:400;font-size:30px;margin-bottom:12px}
+.chip li{list-style:none;padding-left:22px;position:relative}
+.chip li::before{content:"";position:absolute;left:0;top:13px;width:9px;height:9px;border-radius:50%;background:var(--pink)}
+.facts{display:flex;gap:40px;margin-top:34px;font-size:20px}
+.facts b{font-family:var(--display);font-weight:400;font-size:40px;display:block}
+
+/* 세계관 */
+.story{display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px;margin-top:20px}
+.story div{border-top:4px solid var(--ink);padding-top:16px}
+.story div b{font-family:var(--display);font-weight:400;font-size:26px;display:block;margin-bottom:8px}
+.story div:nth-child(2){border-color:var(--pink)}
+.story div:nth-child(3){border-color:var(--red)}
+
+/* 표 */
+table{border-collapse:collapse;width:100%;background:#fff;border:2px solid var(--ink);border-radius:18px;overflow:hidden}
+th,td{text-align:left;padding:11px 20px;border-bottom:1px solid var(--soft);font-size:18px}
+th{background:var(--ink);color:var(--paper);font-weight:700}
+tr:last-child td{border-bottom:0}
+td code,p code,li code{font-family:var(--mono);font-size:.88em;background:var(--soft);padding:1px 6px;border-radius:5px}
+.night td code,.night p code{background:rgba(255,255,255,.12)}
+
+/* UML */
+.uml{display:grid;grid-template-columns:420px 1fr;gap:40px;align-items:start}
+.box{border:3px solid var(--ink);border-radius:18px;background:#fff;overflow:hidden;font-family:var(--mono);font-size:16px}
+.box header{background:var(--ink);color:var(--paper);padding:12px 20px;font-weight:700;font-size:20px}
+.box section{padding:12px 20px;border-top:2px solid var(--ink);line-height:1.8}
+.box .minus{color:var(--red)} .box .plus{color:#1F8A5B}
+.legend p{margin-bottom:16px}
+
+/* 코드 */
+.code{background:var(--night);color:#EDE4F2;border-radius:18px;padding:26px 30px;font-family:var(--mono);font-size:17px;line-height:1.65;white-space:pre;overflow-x:auto;border:2px solid var(--night)}
+.night .code{border-color:rgba(255,255,255,.14);background:#150F29}
+.code .k{color:#FF7AA6}.code .s{color:#FFD08A}.code .c{color:#9D8BB5;font-style:italic}.code .t{color:#9ED9FF}
+.codegrid{display:grid;grid-template-columns:1.25fr 1fr;gap:34px;align-items:start}
+.note p{margin-bottom:18px}
+.note b{color:var(--pink)}
+
+/* 콘솔 */
+.term{background:#0F0B1C;color:#E9E1EF;border-radius:14px;font-family:var(--mono);font-size:16px;line-height:1.7;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+.term .bar{background:#221A38;padding:8px 14px;display:flex;gap:7px}
+.term .bar i{width:11px;height:11px;border-radius:50%;background:#4A3D66}
+.term pre{padding:16px 22px;white-space:pre-wrap;font-family:inherit}
+.term .err{color:#FF6B73}
+.term .hi{color:#FF7AA6;font-weight:700}
+
+/* 막 */
+.act{display:grid;grid-template-columns:1fr 340px;gap:50px;align-items:start}
+.actno{font-family:var(--display);font-size:24px;color:var(--pink);margin-bottom:6px}
+.phone{width:320px;height:560px;border:10px solid var(--ink);border-radius:44px;background:#fff;color:var(--ink);position:relative;overflow:hidden;box-shadow:0 18px 40px rgba(20,8,30,.35)}
+.night .phone{border-color:#3A2E57}
+.phone .top{padding:22px 18px 12px;border-bottom:1px solid #eee;font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px}
+.phone .top i{width:28px;height:28px;border-radius:50%;background:var(--soft);display:block}
+.phone .msgs{padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+.bub{max-width:78%;padding:9px 14px;border-radius:18px;font-size:15px;line-height:1.4;background:#EFEFEF;align-self:flex-start}
+.bub.time{align-self:center;background:none;color:#999;font-size:12px;padding:2px}
+.bub.sys{align-self:center;background:#FFE3EA;color:var(--red);font-size:13px;font-weight:700}
+.stamp{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%) rotate(-12deg);border:5px solid var(--red);color:var(--red);font-family:var(--display);font-size:42px;padding:6px 18px;border-radius:10px;background:rgba(255,255,255,.9);animation:stamp .5s .6s both cubic-bezier(.2,1.6,.4,1)}
+@keyframes stamp{from{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(2.2)}to{opacity:1;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}}
+.phone.empty{display:grid;place-items:center;text-align:center;padding:30px}
+.phone.empty b{display:block;font-size:19px;margin-bottom:10px}
+.phone.empty small{color:#888;font-size:13px;line-height:1.5}
+.feed{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;padding:3px}
+.feed div{aspect-ratio:1;display:grid;place-items:center;font-size:34px;background:var(--soft)}
+.profile{padding:18px;display:flex;gap:16px;align-items:center}
+.profile i{width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--pink),#FFB347,var(--pink));display:block}
+.profile b{font-size:17px;display:block}.profile small{color:#888;font-size:13px}
+
+.bigline{font-family:var(--display);font-size:64px;line-height:1.15;margin-top:30px}
+.quote{font-size:26px;line-height:1.6;margin-top:24px;max-width:900px}
+.fill{border-bottom:2px dashed var(--mute);color:var(--mute);padding:0 4px}
+.end h1{font-size:96px;margin-top:70px}
+.end p{font-size:24px;margin-top:22px;color:var(--mute)}
+
+#nav{position:absolute;right:26px;bottom:18px;display:flex;gap:8px;z-index:10}
+#nav button{width:40px;height:40px;border-radius:50%;border:2px solid currentColor;background:transparent;color:inherit;font-size:18px;cursor:pointer}
+#nav button:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+#count{position:absolute;left:80px;bottom:22px;font-size:14px;color:var(--mute);z-index:10}
+.night #count{color:var(--lilac)}
+</style>
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+  <div id="bars" aria-label="슬라이드 진행"></div>
+  <div id="who"><div class="av"><i></i></div>new_me_2026 <span>Java 캡슐화 발표</span></div>
+
+  <!-- 1 표지 -->
+  <section class="slide cover">
+    <h1>교수님,<br>제 부계는<br>private입니다</h1>
+    <p class="sub">전 애인 인스타 염탐 차단 시스템</p>
+    <div class="notfound"><div><b>사용자를 찾을 수 없습니다.</b><small>링크가 잘못되었거나<br>캡슐화로 보호된 계정입니다.</small></div></div>
+    <p class="meta">팀 <span class="fill">팀 이름</span> &nbsp; 발표자 <span class="fill">이름</span>, <span class="fill">이름</span></p>
+  </section>
+
+  <!-- 2 범위 -->
+  <section class="slide">
+    <h2>오늘 다룬 개념은 딱 두 개예요</h2>
+    <div class="two">
+      <div class="chip"><h3>클래스와 객체</h3><ul><li>클래스 = 계정을 만드는 틀</li><li>객체 = 실제로 만들어진 계정</li><li>생성자와 <code>this</code></li></ul></div>
+      <div class="chip"><h3>캡슐화</h3><ul><li>접근제어자 <code>public</code> / <code>private</code></li><li>getter로 보여줄 것만 보여주기</li><li>검증 메서드로 이상한 값 막기</li></ul></div>
+    </div>
+    <div class="facts"><div><b>2명</b>전공자 1 + 비전공자 1</div><div><b>60분</b>설계부터 코드까지</div><div><b>3개</b>클래스 파일</div></div>
+  </section>
+
+  <!-- 3 세계관 -->
+  <section class="slide">
+    <h2>세계관</h2>
+    <p class="lead">이별 후 새 출발을 한 주인공. 본계는 그대로 두고, 진짜 일상은 부계에만 올려요.</p>
+    <div class="story" style="margin-top:40px">
+      <div><b>나</b><p>본계 <code>@new_me_2026</code><br>부계는 비밀. 전 애인은 차단 예정.</p></div>
+      <div><b>전 애인</b><p>본계 <code>@ex_boy_99</code><br>어떻게든 염탐하고, 새벽에 "자니?"를 보내려 함.</p></div>
+      <div><b>우리 코드</b><p>잘 캡슐화된 <code>InstaAccount</code> 클래스가 전부 막아냄.</p></div>
+    </div>
+  </section>
+
+  <!-- 4 개념 매칭 -->
+  <section class="slide">
+    <h2>인스타 기능 = Java 개념</h2>
+    <table>
+      <tr><th>인스타 세계</th><th>Java 개념</th><th>코드</th></tr>
+      <tr><td>계정을 만드는 틀</td><td>클래스</td><td><code>InstaAccount</code></td></tr>
+      <tr><td>나의 계정, 전 애인 계정</td><td>객체</td><td><code>new InstaAccount(...)</code></td></tr>
+      <tr><td>계정 개설</td><td>생성자 + this</td><td><code>this.mainId = mainId;</code></td></tr>
+      <tr><td>본계: 아이디는 누구나 앎</td><td>private + getter 있음</td><td><code>getMainId()</code></td></tr>
+      <tr><td>부계: 존재 자체를 모름</td><td>private + getter 없음</td><td><code>me.subId</code> → 에러</td></tr>
+      <tr><td>차단 목록</td><td>private + setter 없음</td><td><code>blockedId</code></td></tr>
+      <tr><td>새벽 "자니?" 자동 차단</td><td>검증 메서드</td><td><code>receiveDM()</code></td></tr>
+    </table>
+  </section>
+
+  <!-- 5 클래스 설계 -->
+  <section class="slide">
+    <h2>클래스 설계</h2>
+    <div class="uml">
+      <div class="box">
+        <header>InstaAccount</header>
+        <section><span class="minus">- owner : String</span><br><span class="minus">- mainId : String</span><br><span class="minus">- subId : String</span><br><span class="minus">- blockedId : String</span></section>
+        <section><span class="plus">+ getOwner()</span><br><span class="plus">+ getMainId()</span><br><span class="plus">+ block(targetId)</span><br><span class="plus">+ viewFeed(visitor)</span><br><span class="plus">+ receiveDM(sender, msg, hour)</span><br><span class="minus">- validateId(id)</span><br><span class="minus">- isBlocked(visitor)</span><br><span class="minus">- isDawn(hour)</span></section>
+      </div>
+      <div class="legend">
+        <p><b style="color:var(--red)">-</b> 는 <code>private</code>, <b style="color:#1F8A5B">+</b> 는 <code>public</code>이에요.</p>
+        <p>필드는 <b>전부 private</b>으로 숨기고, 밖에서 꼭 필요한 기능만 public 메서드로 열었어요.</p>
+        <p>검증 메서드도 private이에요. 계정 안에서만 쓰는 도구라서 밖에 보여줄 이유가 없거든요.</p>
+        <p>나와 전 애인 모두 <b>같은 클래스</b>로 만든 <b>서로 다른 객체</b>예요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 코드: 필드 & 생성자 -->
+  <section class="slide">
+    <h2>필드와 생성자</h2>
+    <div class="codegrid">
+<div class="code" data-hl>private String owner;
+private String mainId;    // 본계
+private String subId;     // 부계
+private String blockedId; // 차단
+
+public InstaAccount(String owner,
+        String mainId, String subId) {
+    this.owner = owner;
+    this.mainId = validateId(mainId);
+    this.subId = validateId(subId);
+    this.blockedId = "";
+}</div>
+      <div class="note">
+        <p><code>this.owner</code>는 <b>객체의 필드</b>, 그냥 <code>owner</code>는 <b>매개변수</b>예요.</p>
+        <p><code>this</code>를 빼면 매개변수에 자기 자신을 넣는 꼴이라, 필드는 계속 비어 있어요. 직접 지워보고 확인했어요.</p>
+        <p>아이디는 생성자에서 <b>들어오자마자 검증</b>해요. 잘못된 계정은 처음부터 못 만들어요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 코드: getter -->
+  <section class="slide">
+    <h2>getter를 안 만드는 것도 설계예요</h2>
+    <div class="codegrid">
+<div class="code" data-hl>public String getMainId() {
+    return mainId;
+}
+
+// getSubId()     안 만듦 🤫
+// setBlockedId() 안 만듦 🔒</div>
+      <div class="note">
+        <p>본계 아이디는 알려져도 괜찮으니까 <b>getter를 열어뒀어요.</b></p>
+        <p>부계는 존재 자체를 숨겨야 해서 <b>getter가 없어요.</b> 밖에서는 읽을 방법이 아예 없어요.</p>
+        <p>차단 목록은 <b>setter가 없어서</b> 오직 <code>block()</code> 메서드로만 바뀌어요. 전 애인이 스스로 차단을 풀 수 없죠.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 코드: 검증 -->
+  <section class="slide">
+    <h2>검증 메서드: 새벽 "자니?" 방어</h2>
+    <div class="codegrid">
+<div class="code" data-hl>public void receiveDM(InstaAccount sender,
+        String message, int hour) {
+    if (hour &lt; 0 || hour &gt; 23) return;
+    if (isBlocked(sender)) {
+        System.out.println("전송 실패");
+        return;
+    }
+    if (isDawn(hour) &amp;&amp; message.contains("자니")) {
+        block(sender.getMainId());
+        return;
+    }
+    System.out.println("DM 도착");
+}</div>
+      <div class="note">
+        <p>검증은 <b>세 단계</b>예요. 존재하지 않는 시간인지, 이미 차단된 사람인지, 새벽 "자니?"인지.</p>
+        <p>새벽 1~5시에 "자니"가 들어간 메시지는 <b>보낸 사람을 자동 차단</b>해요.</p>
+        <p>필드를 직접 바꾸지 못하게 막아두니, 모든 변화가 이 검증을 <b>반드시 거쳐요.</b></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 1막 -->
+  <section class="slide">
+    <div class="act">
+      <div>
+        <p class="actno">1막</p>
+        <h2>새 출발</h2>
+        <div class="term"><div class="bar"><i></i><i></i><i></i></div><pre>📱 나님의 본계 @new_me_2026 개설 완료
+📱 전애인님의 본계 @ex_boy_99 개설 완료
+<span class="hi">⚠️ 아이디에 공백은 못 넣어요 → 공백을 _ 로 바꿀게요</span>
+📱 테스트님의 본계 @hello_world 개설 완료</pre></div>
+        <p class="lead" style="margin-top:20px">같은 틀로 두 사람의 계정을 만들었어요. 공백 들어간 아이디는 생성자가 알아서 고쳐줘요.</p>
+      </div>
+      <div class="phone">
+        <div class="profile"><i></i><div><b>new_me_2026</b><small>새 출발 🌱</small></div></div>
+        <div class="feed"><div>🍰</div><div>💅</div><div>🌸</div><div>☕</div><div>🎧</div><div>📸</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 2막 (새벽) -->
+  <section class="slide" data-night>
+    <div class="act">
+      <div>
+        <p class="actno">2막</p>
+        <h2>새벽 3시의 습격</h2>
+        <div class="term"><div class="bar"><i></i><i></i><i></i></div><pre>💬 [21시] @ex_boy_99: 잘 지내?
+   📩 DM 도착
+💬 [3시] @ex_boy_99: 자니?
+   <span class="hi">🚨 새벽 '자니?' 감지!</span>
+   <span class="hi">🔒 @ex_boy_99 님을 차단했어요</span>
+👀 @ex_boy_99 → @new_me_2026 피드 방문
+   사용자를 찾을 수 없습니다.
+💬 [14시] @ex_boy_99: 왜 차단해...
+   📭 전송 실패: 차단된 사용자예요</pre></div>
+      </div>
+      <div class="phone">
+        <div class="top"><i></i>ex_boy_99</div>
+        <div class="msgs">
+          <div class="bub time">오후 9:00</div>
+          <div class="bub">잘 지내?</div>
+          <div class="bub time">오전 3:00</div>
+          <div class="bub">자니?</div>
+          <div class="bub sys">차단된 사용자입니다</div>
+        </div>
+        <div class="stamp">차단</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 3막 -->
+  <section class="slide">
+    <div class="act">
+      <div>
+        <p class="actno">3막</p>
+        <h2>부계를 찾아서</h2>
+<div class="code" data-hl style="margin-bottom:18px">me.subId;       // 부계 직접 보기
+me.getSubId();  // getter로 보기
+me.blockedId = ""; // 차단 셀프 해제</div>
+        <div class="term"><div class="bar"><i></i><i></i><i></i></div><pre><span class="err">error: subId has private access in InstaAccount
+error: cannot find symbol  method getSubId()
+error: blockedId has private access in InstaAccount
+3 errors</span></pre></div>
+      </div>
+      <div class="phone empty"><div><b style="font-size:60px">🔐</b><b>컴파일 에러 3개</b><small>실행조차 안 돼요.<br>부계는 private이니까요.</small></div></div>
+    </div>
+  </section>
+
+  <!-- 12 4막 -->
+  <section class="slide">
+    <div class="act">
+      <div>
+        <p class="actno">4막</p>
+        <h2>캡슐화가 무너진 세계</h2>
+        <p class="lead" style="margin-bottom:18px">필드를 전부 <code>public</code>으로 바꾸고, 검증도 뺀 <code>LeakyInstaAccount</code>로 똑같이 해봤어요.</p>
+        <div class="term"><div class="bar"><i></i><i></i><i></i></div><pre>   🔒 @ex_boy_99 님을 차단했어요
+<span class="err">😈 전애인: 부계 찾았다 → @real_diary_only
+😈 전애인: 차단 셀프 해제 완료</span>
+💬 [3시] @ex_boy_99: 자니?
+   <span class="err">📩 DM 도착</span>
+💥 캡슐화가 무너지면 이렇게 됩니다...</pre></div>
+      </div>
+      <div class="phone">
+        <div class="top"><i></i>ex_boy_99</div>
+        <div class="msgs">
+          <div class="bub time">오전 3:00</div>
+          <div class="bub">자니?</div>
+          <div class="bub">부계 real_diary_only 맞지?</div>
+          <div class="bub">나 차단 풀었어 ㅎ</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 에필로그 -->
+  <section class="slide">
+    <p class="actno">에필로그</p>
+    <h2>그런데 전 애인이 부계로 오면요?</h2>
+    <div class="term" style="max-width:820px"><div class="bar"><i></i><i></i><i></i></div><pre>👀 @ex_boy_sub → @new_me_2026 피드 방문
+   ✨ 나님의 피드: 🍰 성수 카페 투어 | 💅 이달의 네일 | 🌸 한강 노을
+<span class="hi">🤔 차단은 한 명만 저장돼요... 여러 명을 막으려면?</span></pre></div>
+    <p class="quote">지금 <code>blockedId</code>는 아이디 하나만 담을 수 있어요. 여러 명을 막으려면 다음에 배울 개념이 필요해요. To be continued.</p>
+  </section>
+
+  <!-- 14 심화 -->
+  <section class="slide">
+    <h2>심화: private은 클래스 단위예요</h2>
+    <div class="codegrid">
+<div class="code" data-hl>// InstaAccount 클래스 "안"에서는
+public void spy(InstaAccount target) {
+    System.out.println(target.subId);
+    // 컴파일 OK 😱
+}</div>
+      <div class="note">
+        <p>Java의 <code>private</code>은 <b>객체마다</b>가 아니라 <b>클래스마다</b> 막아요.</p>
+        <p>그래서 같은 클래스 안에서는 다른 객체의 private 필드도 읽을 수 있어요. 3막에서 막혔던 건 <code>Main</code>이라는 <b>다른 클래스</b>였기 때문이에요.</p>
+        <p>결국 진짜 보안은 <b>클래스를 설계하는 사람의 책임</b>이에요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 회고 -->
+  <section class="slide">
+    <h2>우리가 배운 것</h2>
+    <div class="two">
+      <div class="chip"><h3>비전공자의 한마디</h3><p class="fill" style="display:block;border:0">여기에 직접 써주세요. 예: "private이 왜 필요한지, 전 애인 덕분에 확실히 알았어요."</p></div>
+      <div class="chip"><h3>전공자의 한마디</h3><p class="fill" style="display:block;border:0">여기에 직접 써주세요. 예: "설명하면서 this와 클래스 단위 private을 다시 정리했어요."</p></div>
+    </div>
+    <p class="bigline">숨길 건 숨기고,<br>들어오는 건 검증한다.</p>
+  </section>
+
+  <!-- 16 끝 -->
+  <section class="slide end">
+    <h1>질문 받아요</h1>
+    <p>단, 새벽 1시~5시에 "자니?"로 시작하는 질문은 자동 차단됩니다.</p>
+  </section>
+
+  <p id="count"></p>
+  <div id="nav"><button id="prev" aria-label="이전 슬라이드">‹</button><button id="next" aria-label="다음 슬라이드">›</button></div>
+</div>
+</div>
+
+<script>
+(function(){
+  // 간단 문법 하이라이트
+  var re=/(\/\/.*$)|("(?:[^"\\]|\\.)*")|\b(public|private|class|return|if|void|new|this)\b|\b(String|int|boolean|InstaAccount)\b/gm;
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  document.querySelectorAll("[data-hl]").forEach(function(el){
+    var src=el.textContent,out="",last=0,m;
+    re.lastIndex=0;
+    while((m=re.exec(src))){
+      out+=esc(src.slice(last,m.index));
+      var cls=m[1]?"c":m[2]?"s":m[3]?"k":"t";
+      out+='<span class="'+cls+'">'+esc(m[0])+"</span>";
+      last=re.lastIndex;
+    }
+    el.innerHTML=out+esc(src.slice(last));
+  });
+
+  var stage=document.getElementById("stage"),
+      slides=[].slice.call(document.querySelectorAll(".slide")),
+      bars=document.getElementById("bars"),
+      count=document.getElementById("count"), i=0;
+
+  slides.forEach(function(_,n){
+    var b=document.createElement("button");
+    b.setAttribute("aria-label",(n+1)+"번 슬라이드로 이동");
+    b.onclick=function(){go(n)};
+    bars.appendChild(b);
+  });
+
+  function go(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.classList.toggle("on",k===i)});
+    [].forEach.call(bars.children,function(b,k){
+      b.className=k<i?"done":k===i?"now":"";
+    });
+    stage.classList.toggle("night",slides[i].hasAttribute("data-night"));
+    count.textContent=(i+1)+" / "+slides.length;
+    try{history.replaceState(null,"","#"+(i+1))}catch(e){}
+  }
+
+  document.getElementById("prev").onclick=function(){go(i-1)};
+  document.getElementById("next").onclick=function(){go(i+1)};
+  document.addEventListener("keydown",function(e){
+    if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){e.preventDefault();go(i+1)}
+    if(e.key==="ArrowLeft"||e.key==="PageUp"){e.preventDefault();go(i-1)}
+    if(e.key==="Home")go(0);
+    if(e.key==="End")go(slides.length-1);
+    if(e.key==="f"||e.key==="F"){
+      if(!document.fullscreenElement)document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  function fit(){
+    var s=Math.min(window.innerWidth/1280,window.innerHeight/720);
+    stage.style.transform="scale("+s+")";
+  }
+  window.addEventListener("resize",fit);
+  fit();
+  var h=parseInt(location.hash.slice(1),10);
+  go(isNaN(h)?0:h-1);
+})();
+</script>
+</body>
+</html>
