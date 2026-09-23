@@ -1,0 +1,11 @@
+# 컴파일 결과물
+bin/
+*.class
+
+# 이클립스 개인 설정
+.metadata/
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
