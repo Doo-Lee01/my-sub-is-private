@@ -126,6 +126,26 @@ td code,p code,li code{font-family:var(--mono);font-size:.88em;background:var(--
 .profile i{width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--pink),#FFB347,var(--pink));display:block}
 .profile b{font-size:17px;display:block}.profile small{color:#888;font-size:13px}
 
+.duo{display:grid;grid-template-columns:250px 250px 1fr;gap:26px;align-items:start;margin-top:4px}
+.phone.sm{width:250px;height:360px;border-width:8px;border-radius:34px}
+.phone .who{font-size:12px;color:#888;font-weight:400;display:block}
+.phone .status{margin:8px 14px 0;font-size:13px;font-weight:700;color:var(--red)}
+.bub.me{align-self:flex-end;background:var(--pink);color:#fff}
+.why{background:#fff;border:2px solid var(--ink);border-radius:20px;padding:20px 24px}
+.why h3{font-family:var(--display);font-weight:400;font-size:24px;margin-bottom:10px}
+.why p{font-size:16px;line-height:1.6;margin-bottom:8px}
+.why code{font-family:var(--mono);font-size:.88em;background:var(--soft);padding:1px 6px;border-radius:5px}
+.steps{display:flex;gap:10px;margin-bottom:16px}
+.steps span{font-size:15px;padding:6px 14px;border-radius:999px;border:2px solid var(--ink);background:#fff}
+.cast{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:22px}
+.cast div{border:2px solid var(--ink);border-radius:20px;padding:18px 24px;background:#fff}
+.cast b{font-family:var(--display);font-weight:400;font-size:26px;display:block;margin-bottom:4px}
+.cast p{font-size:17px}
+.menu2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.menu2 h3{font-family:var(--display);font-weight:400;font-size:22px;margin-bottom:8px}
+.menu2 li{list-style:none;font-size:17px;line-height:1.75}
+.menu2 li small{color:var(--mute);font-size:14px}
+table.small td,table.small th{font-size:16px;padding:9px 16px}
 .bigline{font-family:var(--display);font-size:64px;line-height:1.15;margin-top:30px}
 .quote{font-size:26px;line-height:1.6;margin-top:24px;max-width:900px}
 .fill{border-bottom:2px dashed var(--mute);color:var(--mute);padding:0 4px}
@@ -260,23 +280,23 @@ public int getBlockedCount() {
   <section class="slide">
     <h2>검증 메서드: 새벽 "자니?" 방어</h2>
     <div class="codegrid">
-<div class="code" data-hl>public void receiveDM(InstaAccount sender,
+<div class="code" data-hl>public String receiveDM(InstaAccount sender,
         String message, int hour) {
-    if (hour &lt; 0 || hour &gt; 23) return;
-    if (isBlocked(sender)) {
-        System.out.println("전송 실패");
-        return;
-    }
+    if (hour &lt; 0 || hour &gt; 23) return "시간오류";
+    if (message.trim().length() == 0)
+        return "빈메시지";
+    if (isBlocked(sender.getMainId()))
+        return "차단상태";
     if (isDawn(hour) &amp;&amp; message.contains("자니")) {
         block(sender.getMainId());
-        return;
+        return "자동차단";
     }
-    System.out.println("DM 도착");
+    return "도착";
 }</div>
       <div class="note">
-        <p>검증은 <b>세 단계</b>예요. 존재하지 않는 시간인지, 이미 차단된 사람인지, 새벽 "자니?"인지.</p>
+        <p>검증은 <b>네 단계</b>예요. 없는 시간인지, 빈 메시지인지, 이미 차단된 사람인지, 새벽 "자니?"인지.</p>
         <p>새벽 1~5시에 "자니"가 들어간 메시지는 <b>보낸 사람을 자동 차단</b>해요.</p>
-        <p>필드를 직접 바꾸지 못하게 막아두니, 모든 변화가 이 검증을 <b>반드시 거쳐요.</b></p>
+        <p>처리 결과를 <b>문자열로 돌려줘서</b>, 시뮬레이터가 "왜 이렇게 됐는지"를 설명할 수 있어요.</p>
       </div>
     </div>
   </section>
@@ -433,33 +453,72 @@ error: blockedIds has private access in InstaAccount
     </div>
   </section>
 
-  <!-- 관객 참여 -->
-  <section class="slide" data-night>
-    <div class="act">
-      <div>
-        <p class="actno">관객 참여</p>
-        <h2>당신이 전 애인이라면?</h2>
-        <p class="lead">한 분을 모셔서 <code>DmSimulator</code>로 직접 DM을 보내봐요. 시간과 메시지를 마음대로 입력할 수 있어요. 과연 차단을 피할 수 있을까요?</p>
-        <div class="term" style="margin-top:22px"><div class="bar"><i></i><i></i><i></i></div><pre> 1. 본계(@ex_boy_99)로 DM 보내기
- 2. 부계(@ex_boy_sub)로 DM 보내기
- 3. 본계로 피드 몰래 보기
- 4. 부계로 피드 몰래 보기
- 5. (주인공 시점) 직접 차단하기
- 6. (주인공 시점) 차단 목록 보기
- 0. 종료
-선택 &gt; <span class="hi">_</span></pre></div>
-      </div>
-      <div class="phone">
-        <div class="top"><i></i>new_me_2026</div>
+  <!-- 관객 참여 ① -->
+  <section class="slide">
+    <p class="actno">관객 참여 ①</p>
+    <h2>당신은 이제 전 애인입니다</h2>
+    <div class="cast">
+      <div><b>😈 전 애인 = 관객</b><p>DM을 <strong style="color:var(--pink)">보내는</strong> 사람. 본계 <code>@ex_boy_99</code>와 부계 <code>@ex_boy_sub</code>를 오가며 '나'에게 연락을 시도해요.</p></div>
+      <div><b>🙋‍♀️ 나 = 우리 코드</b><p>DM을 <strong style="color:var(--pink)">받는</strong> 사람. 본계 <code>@new_me_2026</code>. 새벽 1~5시에 "자니"가 오면 보낸 계정을 즉시 차단해요.</p></div>
+    </div>
+    <div class="menu2">
+      <div><h3>😈 전 애인으로 행동하기</h3><ul>
+        <li>1. 💬 '나'에게 DM 보내기 <small>receiveDM()</small></li>
+        <li>2. 👀 '나'의 프로필 몰래 들어가 보기 <small>viewFeed()</small></li>
+        <li>3. 🔄 본계 ↔ 부계 계정 전환</li></ul></div>
+      <div><h3>🙋‍♀️ '나'의 입장에서 확인하기</h3><ul>
+        <li>4. 📱 내 폰 보기 <small>차단 목록 확인</small></li>
+        <li>5. 🔒 내가 직접 차단하기 <small>block()</small></li>
+        <li>0. 종료</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 관객 참여 ② -->
+  <section class="slide">
+    <p class="actno">관객 참여 ②</p>
+    <h2>DM 한 번에 네 단계로 보여줘요</h2>
+    <div class="steps"><span>1 전 애인 폰에서 쓰기</span><span>2 서버 처리 기록</span><span>3 양쪽 폰 화면</span><span>4 왜 이렇게 됐을까?</span></div>
+    <div class="duo">
+      <div class="phone sm">
+        <div class="top"><i></i><div>😈 전 애인의 폰<span class="who">로그인 @ex_boy_99 (본계)</span></div></div>
         <div class="msgs">
-          <div class="bub time">검증 규칙</div>
-          <div class="bub">0~23시만 보낼 수 있어요</div>
-          <div class="bub">빈 메시지는 안 돼요</div>
-          <div class="bub">숫자 자리에 글자를 쓰면?</div>
-          <div class="bub sys">새벽 1~5시 "자니" = 즉시 차단</div>
+          <div class="bub time">대화 상대 @new_me_2026</div>
+          <div class="bub time">오전 3:00</div>
+          <div class="bub me">자니?</div>
+        </div>
+        <p class="status">❌ 전송 실패</p>
+      </div>
+      <div class="phone sm">
+        <div class="top"><i></i><div>🙋‍♀️ 나의 폰<span class="who">@new_me_2026</span></div></div>
+        <div class="msgs">
+          <div class="bub time">🔕 아무 알림도 오지 않았어요</div>
+          <div class="bub sys">🔒 @ex_boy_99 자동 차단 (1/5)</div>
         </div>
       </div>
+      <div class="why">
+        <h3>💡 왜 이렇게 됐을까?</h3>
+        <p>두 조건이 모두 참이었어요.</p>
+        <p>보낸 시각 3시 → 새벽 1~5시 ✅<br>메시지에 "자니" 포함 ✅</p>
+        <p><code>isDawn(hour) &amp;&amp; message.contains("자니")</code>가 true가 되어 <code>block()</code>이 호출됐어요.</p>
+        <p>메시지는 '나'에게 전달되지 않았어요.</p>
+      </div>
     </div>
+  </section>
+
+  <!-- 관객 참여 ③ -->
+  <section class="slide">
+    <p class="actno">관객 참여 ③</p>
+    <h2>결과마다 이유가 달라요</h2>
+    <table class="small">
+      <tr><th>입력 예시</th><th>😈 전 애인 폰</th><th>🙋‍♀️ 나의 폰</th><th>💡 이유 (걸린 검사)</th></tr>
+      <tr><td>21시 · 잘 지내?</td><td>✅ 보냄</td><td>🔔 새 메시지</td><td>모든 검사 통과. 새벽도 "자니"도 아니라 <code>&amp;&amp;</code>가 거짓</td></tr>
+      <tr><td>14시 · 자니?</td><td>✅ 보냄</td><td>🔔 새 메시지</td><td>"자니"는 있지만 새벽이 아니라 통과</td></tr>
+      <tr><td>3시 · 자니?</td><td>❌ 전송 실패</td><td>🔕 + 자동 차단</td><td>새벽 ✅ 자니 ✅ → <code>block()</code> 호출</td></tr>
+      <tr><td>차단 후 아무 메시지</td><td>❌ 전송 실패</td><td>🔕 알림 없음</td><td><code>isBlocked()</code>가 배열에서 같은 아이디를 찾음</td></tr>
+      <tr><td>25시 · hi</td><td>⚠️ 보낼 수 없음</td><td>🔕 알림 없음</td><td><code>hour &gt; 23</code> 시간 검사</td></tr>
+      <tr><td>공백만 입력</td><td>⚠️ 보낼 수 없음</td><td>🔕 알림 없음</td><td><code>trim()</code> 후 빈 문자열</td></tr>
+      <tr><td>차단 후 프로필 방문</td><td>사용자를 찾을 수 없습니다.</td><td>변화 없음</td><td><code>viewFeed()</code>가 false 반환</td></tr>
+    </table>
   </section>
 
   <!-- 14 심화 -->

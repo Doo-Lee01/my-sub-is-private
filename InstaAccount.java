@@ -115,36 +115,41 @@ public class InstaAccount {
         }
     }
 
-    public void viewFeed(InstaAccount visitor) {
+    // 피드를 볼 수 있으면 true, 차단돼서 못 보면 false를 돌려줘요
+    public boolean viewFeed(InstaAccount visitor) {
         System.out.println("👀 @" + visitor.getMainId() + " → @" + this.mainId + " 피드 방문");
         if (isBlocked(visitor.getMainId())) {
             System.out.println("   사용자를 찾을 수 없습니다.");
-            return;
+            return false;
         }
         System.out.println("   ✨ " + this.owner + "님의 피드: 🍰 성수 카페 투어 | 💅 이달의 네일 | 🌸 한강 노을");
+        return true;
     }
 
-    public void receiveDM(InstaAccount sender, String message, int hour) {
+    // DM을 받고, 처리 결과를 문자열로 돌려줘요
+    // "시간오류" | "빈메시지" | "차단상태" | "자동차단" | "도착"
+    public String receiveDM(InstaAccount sender, String message, int hour) {
         System.out.println("💬 [" + hour + "시] @" + sender.getMainId() + ": " + message);
 
         if (hour < 0 || hour > 23) {
             System.out.println("   ⚠️ 0~23시만 가능해요. 존재하지 않는 시간이에요");
-            return;
+            return "시간오류";
         }
         if (message == null || message.trim().length() == 0) {
             System.out.println("   ⚠️ 빈 메시지는 보낼 수 없어요");
-            return;
+            return "빈메시지";
         }
         if (isBlocked(sender.getMainId())) {
             System.out.println("   📭 전송 실패: 차단된 사용자예요");
-            return;
+            return "차단상태";
         }
         if (isDawn(hour) && message.contains("자니")) {
             System.out.println("   🚨 새벽 '자니?' 감지!");
             block(sender.getMainId());
-            return;
+            return "자동차단";
         }
         System.out.println("   📩 DM 도착");
+        return "도착";
     }
 
     /*
