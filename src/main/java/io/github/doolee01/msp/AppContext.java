@@ -19,14 +19,16 @@ import io.github.doolee01.msp.service.InstaService;
  *
  * InstaService 입장에서는 둘 다 그냥 AccountRepository라서 코드가 똑같아요.
  */
-public final class AppContext {
+public final class AppContext implements AutoCloseable {
 
     private final InstaService service;
     private final String storageDescription;
+    private final Database database;   // 메모리 모드면 null
 
-    private AppContext(InstaService service, String storageDescription) {
+    private AppContext(InstaService service, String storageDescription, Database database) {
         this.service = service;
         this.storageDescription = storageDescription;
+        this.database = database;
     }
 
     /**
@@ -54,7 +56,7 @@ public final class AppContext {
         if (service.isEmpty()) {
             DemoData.seed(service);
         }
-        return new AppContext(service, description);
+        return new AppContext(service, description, database);
     }
 
     public InstaService getService() {
@@ -63,5 +65,13 @@ public final class AppContext {
 
     public String getStorageDescription() {
         return storageDescription;
+    }
+
+    /** 프로그램을 끝낼 때 DB 커넥션 풀을 닫아요. try-with-resources로 쓰면 자동으로 불려요 */
+    @Override
+    public void close() {
+        if (database != null) {
+            database.close();
+        }
     }
 }

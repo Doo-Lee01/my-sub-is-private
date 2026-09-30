@@ -14,7 +14,7 @@ public class MaxLengthRule implements DmRule {
 
     @Override
     public boolean isViolatedBy(Account receiver, DirectMessage dm) {
-        return dm.getContent().length() > DirectMessage.MAX_LENGTH;
+        return dm.length() > DirectMessage.MAX_LENGTH;
     }
 
     @Override

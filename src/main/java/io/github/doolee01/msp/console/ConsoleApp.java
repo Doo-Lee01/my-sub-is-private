@@ -40,20 +40,16 @@ public class ConsoleApp {
     }
 
     public static void main(String[] args) {
-        AppContext context;
-        try {
-            context = AppContext.create();
-        } catch (DatabaseConnectionException e) {   // checked 예외라서 처리하지 않으면 컴파일이 안 돼요
+        // try-with-resources에 자원 두 개: AppContext(DB 커넥션 풀)와 Scanner.
+        // 블록이 끝나면 만든 순서의 반대(Scanner → AppContext)로 자동 close() 돼요.
+        // catch도 함께 쓸 수 있어요. AppContext.create()가 던지는 checked 예외를 여기서 받아요.
+        try (AppContext context = AppContext.create();
+             Scanner sc = new Scanner(System.in, StandardCharsets.UTF_8)) {
+            System.out.println("💾 저장소: " + context.getStorageDescription());
+            new ConsoleApp(context.getService(), sc).run();
+        } catch (DatabaseConnectionException e) {
             System.err.println("❌ DB 연결 실패: " + e.getMessage());
             System.err.println("💡 " + e.getHint());
-            return;
-        }
-        System.out.println("💾 저장소: " + context.getStorageDescription());
-
-        // try-with-resources: Scanner도 close()가 필요한 자원이에요.
-        // 괄호 안에서 만들면 run()이 정상 종료하든 예외로 끝나든 자동으로 닫혀요.
-        try (Scanner sc = new Scanner(System.in, StandardCharsets.UTF_8)) {
-            new ConsoleApp(context.getService(), sc).run();
         }
     }
 

@@ -30,6 +30,20 @@
             <version>42.7.7</version>
         </dependency>
 
+        <!-- 커넥션 풀: DB 연결을 미리 열어두고 빌려줬다 돌려받아요 -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>6.3.0</version>
+        </dependency>
+
+        <!-- HikariCP가 남기는 로그(풀 시작·종료)를 콘솔에 보여줘요 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+
         <!-- 테스트 코드용 (배포 jar에는 포함되지 않아요) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

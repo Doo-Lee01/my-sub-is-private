@@ -9,6 +9,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 /**
  * DB 접속 정보를 들고 있다가, 필요할 때 연결(Connection)을 열어주는 클래스.
  *
@@ -19,8 +22,21 @@ import java.sql.SQLException;
  *
  * 비밀번호를 코드에 적으면 GitHub에 올라가는 순간 전 세계에 공개돼요. 절대 코드에 쓰지 마세요!
  * 이클립스에서는 Run Configurations → Environment 탭, Vercel에서는 Settings → Environment Variables에 넣어요.
+ *
+ * 커넥션 풀(Connection Pool)
+ *  DB 연결을 새로 여는 건 비싸요. 서버를 찾아가서 암호화(TLS) 약속을 하고 로그인까지 해야 하거든요.
+ *  예전에는 요청마다 연결을 새로 열고 닫아서, DM 한 번에 연결을 3~4번 열었어요 (Render→Supabase 기준 약 2초).
+ *  이제는 HikariCP가 연결 몇 개를 미리 열어두고 빌려줬다가 돌려받아요.
+ *  저장소 코드의 conn.close()는 연결을 끊는 게 아니라 "풀에 반납"하는 뜻이 돼요. 그래서 저장소 코드는 그대로예요.
+ *
+ * AutoCloseable: 프로그램이 끝날 때 close()로 풀을 닫아서 열어둔 연결을 정리해요.
  */
-public class Database {
+public class Database implements AutoCloseable {
+
+    /** Supabase 무료 Session pooler는 동시에 쓸 수 있는 연결 수가 적어서 작게 잡아요 */
+    private static final int MAX_POOL_SIZE = 3;
+
+    private HikariDataSource pool;   // 처음 connect() 할 때 만들어요
 
     private final String url;
     private final String user;
@@ -42,11 +58,39 @@ public class Database {
     }
 
     /**
-     * 새 연결을 열어요. 다 쓰면 꼭 닫아야 해서, 부르는 쪽은 try-with-resources로 써요.
-     *   try (Connection conn = database.connect()) { ... }   ← 블록이 끝나면 자동으로 close()
+     * 풀에서 연결을 하나 빌려요. 다 쓰면 꼭 돌려줘야 해서, 부르는 쪽은 try-with-resources로 써요.
+     *   try (Connection conn = database.connect()) { ... }   ← 블록이 끝나면 자동으로 close() = 풀에 반납
+     *
+     * synchronized: 요청 두 개가 동시에 들어와도 풀이 두 개 만들어지지 않게 막아요.
      */
-    public Connection connect() throws SQLException {
-        return DriverManager.getConnection(url, user, password);
+    public synchronized Connection connect() throws SQLException {
+        if (pool == null) {
+            pool = createPool();
+        }
+        return pool.getConnection();
+    }
+
+    private HikariDataSource createPool() {
+        HikariConfig config = new HikariConfig();
+        config.setPoolName("msp-db");
+        config.setJdbcUrl(url);
+        config.setUsername(user);
+        config.setPassword(password);
+        config.setMaximumPoolSize(MAX_POOL_SIZE);   // 최대 3개까지 열어둬요
+        config.setMinimumIdle(1);                   // 한가할 때도 1개는 열어둬서 다음 요청이 바로 쓰게 해요
+        config.setConnectionTimeout(10_000);        // 10초 안에 연결을 못 빌리면 SQLException
+        config.setIdleTimeout(120_000);             // 2분 동안 안 쓴 여분 연결은 닫아요
+        config.setMaxLifetime(300_000);             // 연결 하나는 최대 5분만 쓰고 새로 바꿔요 (중간 장비가 끊기 전에)
+        return new HikariDataSource(config);
+    }
+
+    /** 풀을 닫아서 열어둔 연결을 모두 정리해요. 여러 번 불러도 괜찮아요 */
+    @Override
+    public synchronized void close() {
+        if (pool != null) {
+            pool.close();
+            pool = null;
+        }
     }
 
     /**
@@ -61,7 +105,8 @@ public class Database {
         // 2단계: 실제로 접속해서 accounts 표를 읽어봐요 (접속 정보 + 표 존재 여부를 한 번에 확인)
         // try-with-resources: 괄호 안에서 연 Connection, PreparedStatement, ResultSet이
         //                     성공하든 예외가 나든 블록이 끝나면 역순으로 자동 close() 돼요
-        try (Connection conn = connect();
+        // 확인은 풀을 거치지 않고 직접 연결해요. 실패 원인(SQLException)을 그대로 받아서 진단하려고요
+        try (Connection conn = DriverManager.getConnection(url, user, password);
              PreparedStatement ps = conn.prepareStatement("select count(*) from accounts");
              ResultSet rs = ps.executeQuery()) {
             rs.next();

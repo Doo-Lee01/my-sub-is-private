@@ -23,6 +23,7 @@
 | 메모리에만 저장 | `AccountRepository` 인터페이스 → 메모리 / JDBC 구현 | Repository 패턴, JDBC |
 | 한 클래스가 판단·출력 모두 | 화면 → 서비스 → 도메인 → 저장소 | 계층 분리 |
 | 콘솔 | 콘솔 + 웹 화면 (같은 서비스 공유) | HTTP, JSON |
+| 요청마다 DB 연결을 새로 열고 닫음 | HikariCP 커넥션 풀로 연결 재사용 | 커넥션 풀, `AutoCloseable` |
 
 <br>
 
@@ -47,7 +48,7 @@ src/main/java/io/github/doolee01/msp/
 │   └── rule/      DmRule(인터페이스) + 규칙 5개
 ├── repository/    AccountRepository, MessageRepository(인터페이스)
 │   ├── memory/    메모리 구현
-│   └── jdbc/      PostgreSQL 구현 + Database(접속 정보)
+│   └── jdbc/      PostgreSQL 구현 + Database(접속 정보·커넥션 풀)
 ├── service/       InstaService, DemoData, 예외
 ├── console/       ConsoleApp
 ├── web/           WebApp, Json
@@ -56,7 +57,7 @@ src/main/java/io/github/doolee01/msp/
 src/main/resources/
 ├── public/index.html   웹 화면
 └── db/schema.sql       테이블 만드는 SQL
-src/test/java/          JUnit 테스트 29개
+src/test/java/          JUnit 테스트 31개
 ```
 
 <br>
