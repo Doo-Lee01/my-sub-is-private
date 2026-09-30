@@ -10,6 +10,7 @@ import io.github.doolee01.msp.domain.DirectMessage;
 import io.github.doolee01.msp.domain.DmOutcome;
 import io.github.doolee01.msp.domain.Handle;
 import io.github.doolee01.msp.repository.AccountRepository;
+import io.github.doolee01.msp.repository.DuplicateKeyException;
 import io.github.doolee01.msp.repository.MessageRecord;
 import io.github.doolee01.msp.repository.MessageRepository;
 
@@ -43,7 +44,13 @@ public class InstaService {
         if (accounts.findByHandle(h).isPresent()) {
             throw new DuplicateHandleException(h);
         }
-        return accounts.save(new Account(h, displayName, ownerKey, type));
+        try {
+            return accounts.save(new Account(h, displayName, ownerKey, type));
+        } catch (DuplicateKeyException e) {
+            // 위에서 확인한 뒤 저장하기 직전에, 다른 사람이 같은 아이디로 먼저 가입했을 수 있어요.
+            // 저장소의 예외(DuplicateKeyException)를 화면이 이해하는 예외로 "번역"해서 다시 던져요.
+            throw new DuplicateHandleException(h, e);
+        }
     }
 
     public List<Account> getAccounts() {

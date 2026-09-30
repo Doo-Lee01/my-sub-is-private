@@ -3,6 +3,7 @@ package io.github.doolee01.msp;
 import io.github.doolee01.msp.repository.AccountRepository;
 import io.github.doolee01.msp.repository.MessageRepository;
 import io.github.doolee01.msp.repository.jdbc.Database;
+import io.github.doolee01.msp.repository.jdbc.DatabaseConnectionException;
 import io.github.doolee01.msp.repository.jdbc.JdbcAccountRepository;
 import io.github.doolee01.msp.repository.jdbc.JdbcMessageRepository;
 import io.github.doolee01.msp.repository.memory.MemoryAccountRepository;
@@ -28,7 +29,11 @@ public final class AppContext {
         this.storageDescription = storageDescription;
     }
 
-    public static AppContext create() {
+    /**
+     * throws DatabaseConnectionException: DB 모드인데 연결이 안 되면 여기서 바로 알려줘요.
+     * checked 예외라서 이 메서드를 부르는 WebApp, ConsoleApp은 반드시 처리해야 해요.
+     */
+    public static AppContext create() throws DatabaseConnectionException {
         AccountRepository accounts;
         MessageRepository messages;
         String description;
@@ -39,6 +44,7 @@ public final class AppContext {
             messages = new MemoryMessageRepository();
             description = "메모리 (껐다 켜면 초기화돼요)";
         } else {
+            database.verifyConnection();   // 연결이 안 되면 여기서 예외가 던져지고 아래 줄은 실행되지 않아요
             accounts = new JdbcAccountRepository(database);
             messages = new JdbcMessageRepository(database);
             description = "PostgreSQL · " + database.describe();

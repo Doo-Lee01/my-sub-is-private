@@ -2,6 +2,7 @@ package io.github.doolee01.msp.console;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import io.github.doolee01.msp.AppContext;
@@ -12,6 +13,8 @@ import io.github.doolee01.msp.domain.Handle;
 import io.github.doolee01.msp.domain.InstaException;
 import io.github.doolee01.msp.domain.RuleCheck;
 import io.github.doolee01.msp.repository.MessageRecord;
+import io.github.doolee01.msp.repository.jdbc.DataAccessException;
+import io.github.doolee01.msp.repository.jdbc.DatabaseConnectionException;
 import io.github.doolee01.msp.service.DemoData;
 import io.github.doolee01.msp.service.InstaService;
 import io.github.doolee01.msp.service.ProfileView;
@@ -37,15 +40,36 @@ public class ConsoleApp {
     }
 
     public static void main(String[] args) {
-        AppContext context = AppContext.create();
-        Scanner sc = new Scanner(System.in, StandardCharsets.UTF_8);
+        AppContext context;
+        try {
+            context = AppContext.create();
+        } catch (DatabaseConnectionException e) {   // checked 예외라서 처리하지 않으면 컴파일이 안 돼요
+            System.err.println("❌ DB 연결 실패: " + e.getMessage());
+            System.err.println("💡 " + e.getHint());
+            return;
+        }
         System.out.println("💾 저장소: " + context.getStorageDescription());
-        new ConsoleApp(context.getService(), sc).run();
-        sc.close();
+
+        // try-with-resources: Scanner도 close()가 필요한 자원이에요.
+        // 괄호 안에서 만들면 run()이 정상 종료하든 예외로 끝나든 자동으로 닫혀요.
+        try (Scanner sc = new Scanner(System.in, StandardCharsets.UTF_8)) {
+            new ConsoleApp(context.getService(), sc).run();
+        }
     }
 
     public void run() {
         printIntro();
+        try {
+            loop();
+        } catch (NoSuchElementException e) {
+            // 입력이 끝났을 때(Ctrl+Z, Ctrl+D, 콘솔 입력 닫힘) nextLine()이 던지는 예외예요.
+            // 오류가 아니라 "사용자가 입력을 끝냈다"는 뜻이라 조용히 종료해요.
+            System.out.println();
+        }
+        System.out.println("👋 종료할게요");
+    }
+
+    private void loop() {
         boolean running = true;
         while (running) {
             printMenu();
@@ -65,13 +89,16 @@ public class ConsoleApp {
                     default: System.out.println("⚠️ 메뉴에 있는 번호만 입력해 주세요");
                 }
             } catch (InstaException e) {
-                // 서비스가 던진 예외를 여기서 한 번에 받아서 안내해요
+                // 규칙 위반(없는 계정, 잘못된 아이디 등): 안내하고 메뉴로 돌아가요
                 System.out.println("⚠️ " + e.getMessage());
+            } catch (DataAccessException e) {
+                // DB 오류: 프로그램을 끄지 않고, 잠시 후 다시 해보라고 안내해요
+                System.out.println("⚠️ DB 작업 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.");
+                System.out.println("   (원인: " + e.getCause().getMessage() + ")");
             }
             System.out.print("\n⏎ 엔터를 누르면 메뉴로 돌아가요");
             sc.nextLine();
         }
-        System.out.println("👋 종료할게요");
     }
 
     // ==================== 화면 ====================

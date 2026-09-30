@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,7 @@ import io.github.doolee01.msp.domain.rule.DmRule;
 import io.github.doolee01.msp.domain.rule.DmRules;
 import io.github.doolee01.msp.repository.MessageRecord;
 import io.github.doolee01.msp.repository.jdbc.DataAccessException;
+import io.github.doolee01.msp.repository.jdbc.DatabaseConnectionException;
 import io.github.doolee01.msp.service.AccountNotFoundException;
 import io.github.doolee01.msp.service.InstaService;
 import io.github.doolee01.msp.service.ProfileView;
@@ -54,20 +56,67 @@ public class WebApp {
         this.storage = context.getStorageDescription();
     }
 
-    public static void main(String[] args) throws IOException {
-        AppContext context = AppContext.create();
-        int port = readPort();
-        new WebApp(context).start(port);
+    public static void main(String[] args) {
+        // 1) 포트 번호 읽기: 숫자가 아니면 IllegalArgumentException
+        int port;
+        try {
+            port = parsePort(System.getenv("PORT"));   // Vercel·Render는 PORT 환경 변수로 포트를 알려줘요
+        } catch (IllegalArgumentException e) {
+            exitWithError(e.getMessage(), "Run Configurations의 PORT 값을 지우거나 1~65535 사이 숫자로 바꾸세요");
+            return;
+        }
+
+        // 2) 저장소 준비: DB 모드인데 연결이 안 되면 DatabaseConnectionException (checked 예외)
+        AppContext context;
+        try {
+            context = AppContext.create();
+        } catch (DatabaseConnectionException e) {
+            exitWithError("DB 연결 실패: " + e.getMessage(), e.getHint());
+            return;
+        }
+
+        // 3) 서버 켜기: 포트를 이미 누가 쓰고 있으면 BindException
+        //    BindException은 IOException의 자식이라서, 자식을 먼저 catch 해야 해요.
+        //    (부모 IOException을 먼저 쓰면 자식 catch에 절대 도달하지 못해서 컴파일 에러가 나요)
+        try {
+            new WebApp(context).start(port);
+        } catch (BindException e) {
+            exitWithError(port + "번 포트를 이미 다른 프로그램이 쓰고 있어요",
+                    "이클립스 Console 창에서 이전에 실행한 서버를 빨간 정지 버튼으로 끄거나, "
+                    + "Run Configurations → Environment에 PORT=8081 을 넣고 http://localhost:8081 로 접속하세요");
+            return;
+        } catch (IOException e) {
+            exitWithError("서버를 켜지 못했어요: " + e.getMessage(), "서버 로그를 확인하세요");
+            return;
+        }
         System.out.println("🌐 웹 서버 시작: http://localhost:" + port);
         System.out.println("💾 저장소: " + context.getStorageDescription());
     }
 
-    private static int readPort() {
-        String port = System.getenv("PORT");   // Vercel·Render는 PORT 환경 변수로 포트를 알려줘요
-        if (port == null || port.isBlank()) {
+    /** 비어 있으면 8080, 숫자가 아니거나 범위를 벗어나면 IllegalArgumentException */
+    static int parsePort(String raw) {
+        if (raw == null || raw.isBlank()) {
             return 8080;
         }
-        return Integer.parseInt(port.trim());
+        int port;
+        try {
+            port = Integer.parseInt(raw.trim());
+        } catch (NumberFormatException e) {
+            // 원래 예외(e)를 원인으로 넘겨서, 로그에서 처음 원인까지 따라갈 수 있게 해요 (예외 체이닝)
+            throw new IllegalArgumentException("PORT 값이 숫자가 아니에요: " + raw, e);
+        }
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("PORT는 1~65535 사이여야 해요: " + port);
+        }
+        return port;
+    }
+
+    /** 스택 트레이스 대신 무엇이 잘못됐고 어떻게 고치는지를 보여주고 프로그램을 끝내요 */
+    private static void exitWithError(String problem, String hint) {
+        System.err.println();
+        System.err.println("❌ " + problem);
+        System.err.println("💡 " + hint);
+        System.exit(1);
     }
 
     public HttpServer start(int port) throws IOException {
@@ -83,6 +132,8 @@ public class WebApp {
     private void handle(HttpExchange ex) throws IOException {
         String path = ex.getRequestURI().getPath();
         String method = ex.getRequestMethod();
+        long startedAt = System.currentTimeMillis();
+        int status = 200;
         try {
             if (!path.startsWith("/api/")) {
                 serveStatic(ex, path);
@@ -91,20 +142,33 @@ public class WebApp {
             Map<String, String> p = readParams(ex);
             Object body = route(method, path, p);
             if (body == null) {
-                sendJson(ex, 404, error("없는 API예요: " + method + " " + path));
+                status = 404;
+                sendJson(ex, status, error("없는 API예요: " + method + " " + path));
             } else {
-                sendJson(ex, 200, body);
+                sendJson(ex, status, body);
             }
-        } catch (AccountNotFoundException e) {
-            sendJson(ex, 404, error(e.getMessage()));
-        } catch (InstaException | IllegalArgumentException e) {
-            sendJson(ex, 400, error(e.getMessage()));
+        // catch는 위에서부터 차례로 검사해요. 자식 예외를 부모보다 먼저 써야 해요.
+        } catch (AccountNotFoundException e) {                    // InstaException의 자식
+            status = 404;
+            sendJson(ex, status, error(e.getMessage()));
+        } catch (InstaException | IllegalArgumentException e) {   // 멀티 catch: 둘 다 "요청이 잘못됨"
+            status = 400;
+            sendJson(ex, status, error(e.getMessage()));
         } catch (DataAccessException e) {
+            status = 500;
+            e.printStackTrace();                                  // 원인(cause)까지 서버 로그에 남겨요
+            sendJson(ex, status, error("DB 작업 중 문제가 생겼어요. 서버 로그를 확인해 주세요."));
+        } catch (RuntimeException e) {                            // 예상하지 못한 나머지 전부
+            status = 500;
             e.printStackTrace();
-            sendJson(ex, 500, error("DB 작업 중 문제가 생겼어요. 서버 로그를 확인해 주세요."));
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            sendJson(ex, 500, error("알 수 없는 오류가 생겼어요."));
+            sendJson(ex, status, error("알 수 없는 오류가 생겼어요."));
+        } finally {
+            // finally: 성공하든, 예외가 나서 catch로 가든, 중간에 return 하든 "항상" 실행돼요.
+            // 그래서 요청마다 한 줄씩 남기는 기록(로그)을 여기에 둬요.
+            if (path.startsWith("/api/")) {
+                long took = System.currentTimeMillis() - startedAt;
+                System.out.println("📨 " + method + " " + path + " → " + status + " (" + took + "ms)");
+            }
         }
     }
 

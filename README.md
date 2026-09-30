@@ -56,7 +56,7 @@ src/main/java/io/github/doolee01/msp/
 src/main/resources/
 ├── public/index.html   웹 화면
 └── db/schema.sql       테이블 만드는 SQL
-src/test/java/          JUnit 테스트 17개
+src/test/java/          JUnit 테스트 29개
 ```
 
 <br>
@@ -96,6 +96,60 @@ src/test/java/          JUnit 테스트 17개
 | POST | `/api/blocks/delete` | 차단 풀기 |
 | GET | `/api/inbox` · `/api/attempts` | 받은 DM · 모든 시도 기록 |
 | POST | `/api/reset` | 데모 데이터로 초기화 |
+
+<br>
+
+## ⚠️ 예외 처리
+
+### 예외 계층
+
+```
+Throwable
+├── Exception                            ← checked: 처리하지 않으면 컴파일이 안 돼요
+│   ├── IOException
+│   │   └── BindException                  포트를 이미 누가 쓰고 있을 때 (WebApp)
+│   ├── SQLException                       JDBC 오류 (저장소 안에서만 다뤄요)
+│   └── DatabaseConnectionException ★     DB 설정·연결 실패 + 해결 방법(hint)
+└── RuntimeException                     ← unchecked: 처리를 강제하지 않아요
+    ├── IllegalArgumentException           잘못된 요청 값 (PORT, hour 등)
+    ├── InstaException ★                   규칙 위반의 부모
+    │   ├── InvalidHandleException ★
+    │   ├── AccountNotFoundException ★
+    │   └── DuplicateHandleException ★
+    ├── DataAccessException ★              DB 작업 실패 (SQLException을 감쌈)
+    └── DuplicateKeyException ★            저장소의 아이디 중복
+★ = 직접 만든 예외
+```
+
+### 어디서 무엇을 쓰는지
+
+| 개념 | 위치 | 하는 일 |
+|---|---|---|
+| checked 예외 + `throws` | `Database.verifyConnection()` → `AppContext.create()` | DB 연결 실패를 부르는 쪽이 반드시 처리하게 강제 |
+| `try-catch` 여러 개, 자식 먼저 | `WebApp.main()` | `BindException`을 `IOException`보다 먼저 잡아 포트 충돌을 안내 |
+| 멀티 catch `A \| B` | `WebApp.handle()` | `InstaException`과 `IllegalArgumentException`을 한 번에 400으로 |
+| `finally` | `WebApp.handle()` | 성공·실패와 상관없이 요청마다 로그 한 줄 (`📨 POST /api/dm → 400 (2ms)`) |
+| `try-with-resources` | `Database`, `Jdbc*Repository`, `ConsoleApp.main()` | `Connection`, `ResultSet`, `Scanner`를 자동으로 닫기 |
+| 예외 체이닝 (`cause`) | `parsePort()`, `DuplicateHandleException` | 원래 원인을 버리지 않고 함께 넘기기 |
+| 예외 변환 | `JdbcAccountRepository` → `InstaService` | `SQLException(23505)` → `DuplicateKeyException` → `DuplicateHandleException` |
+| `addSuppressed` | `JdbcAccountRepository.rollbackQuietly()` | 되돌리기마저 실패해도 원래 오류를 잃지 않기 |
+| 정상 종료로 처리 | `ConsoleApp.run()` | 입력이 끝나면(`NoSuchElementException`) 오류 대신 조용히 종료 |
+
+### 예외로 만들지 않은 것
+
+차단 목록이 꽉 찬 경우(`BlockResult.LIST_FULL`)나 새벽 "자니"로 차단된 경우(`DmResult.AUTO_BLOCKED`)는 예외가 아니라 enum 결과로 돌려줘요. 서비스가 원래 하는 일 안에서 **예상되는 결과**이기 때문이에요. 예외는 잘못된 입력, 없는 계정, DB 장애처럼 **정상 흐름을 이어갈 수 없을 때**만 써요.
+
+### 실행하면 이렇게 보여요
+
+스택 트레이스 대신 무엇이 잘못됐는지와 고치는 방법을 보여줘요.
+
+```
+❌ DB 연결 실패: DB_URL이 jdbc: 로 시작하지 않아요
+💡 Supabase에서 복사한 주소 앞에 jdbc: 를 붙이고, 아이디·비밀번호 부분(postgres.xxx:[...]@)은 빼서 DB_USER와 DB_PASSWORD에 따로 넣으세요.
+
+❌ 8080번 포트를 이미 다른 프로그램이 쓰고 있어요
+💡 이클립스 Console 창에서 이전에 실행한 서버를 빨간 정지 버튼으로 끄거나, Run Configurations → Environment에 PORT=8081 을 넣고 http://localhost:8081 로 접속하세요
+```
 
 <br>
 

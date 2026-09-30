@@ -13,6 +13,7 @@ import io.github.doolee01.msp.domain.Account;
 import io.github.doolee01.msp.domain.AccountType;
 import io.github.doolee01.msp.domain.Handle;
 import io.github.doolee01.msp.repository.AccountRepository;
+import io.github.doolee01.msp.repository.DuplicateKeyException;
 
 /**
  * PostgreSQL(Supabase)에 계정을 저장하는 구현체. JDBC를 직접 써요.
@@ -24,6 +25,8 @@ import io.github.doolee01.msp.repository.AccountRepository;
  *     계정은 저장됐는데 차단 목록은 저장 안 되는 "반쪽짜리" 상태를 막아요.
  */
 public class JdbcAccountRepository implements AccountRepository {
+
+    private static final String UNIQUE_VIOLATION = "23505";
 
     private final Database database;
 
@@ -43,11 +46,27 @@ public class JdbcAccountRepository implements AccountRepository {
                 conn.commit();           // 전부 성공하면 확정
                 return account;
             } catch (SQLException e) {
-                conn.rollback();         // 하나라도 실패하면 전부 취소
+                rollbackQuietly(conn, e); // 하나라도 실패하면 전부 취소
                 throw e;
             }
         } catch (SQLException e) {
+            // SQLState = DB가 알려주는 오류 종류 코드. 23505 = unique 제약 위반(아이디 중복)
+            if (UNIQUE_VIOLATION.equals(e.getSQLState())) {
+                throw new DuplicateKeyException("이미 저장된 아이디예요: " + account.getHandle(), e);
+            }
             throw new DataAccessException("계정 저장 실패: " + account.getHandle(), e);
+        }
+    }
+
+    /**
+     * 되돌리기(rollback)마저 실패할 수 있어요. 그때 원래 오류를 잃어버리면 안 되니까,
+     * 되돌리기 오류는 원래 예외에 "덤으로 붙여두고"(addSuppressed) 원래 예외를 계속 던지게 해요.
+     */
+    private void rollbackQuietly(Connection conn, SQLException original) {
+        try {
+            conn.rollback();
+        } catch (SQLException rollbackError) {
+            original.addSuppressed(rollbackError);
         }
     }
 
