@@ -17,6 +17,11 @@ public class MemoryMessageRepository implements MessageRepository {
 
     @Override
     public synchronized MessageRecord save(DirectMessage dm, DmResult result) {
+        if (dm.length() > DirectMessage.MAX_LENGTH) {
+            // DB의 varchar(500)과 똑같이 거절해요. 메모리 저장소가 너그러우면
+            // 테스트는 통과하는데 실제 DB에서만 터지는 버그를 놓치거든요 (실제로 그랬어요)
+            throw new IllegalArgumentException("저장할 수 있는 길이(" + DirectMessage.MAX_LENGTH + "자)를 넘었어요");
+        }
         MessageRecord record = new MessageRecord(nextId++, dm.getSender().getValue(),
                 dm.getReceiver().getValue(), dm.getContent(), dm.getHour(), result, Instant.now());
         store.add(record);

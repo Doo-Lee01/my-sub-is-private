@@ -73,7 +73,9 @@ public class InstaService {
         if (outcome.getResult().blocksSender()) {
             accounts.save(receiver);          // 자동 차단으로 차단 목록이 바뀌었으니 저장
         }
-        messages.save(dm, outcome.getResult());
+        // 너무 긴 메시지는 DB 칸 크기에 맞게 잘라서 기록해요.
+        // (예전에는 그대로 저장하다가 DB가 "value too long"으로 거절해서 500 오류가 났어요)
+        messages.save(dm.truncatedForStorage(), outcome.getResult());
         return outcome;
     }
 
