@@ -1,0 +1,24 @@
+# ============================================================
+#  배포용 컨테이너 설정 (Vercel · Render 공용)
+#  1단계: Maven으로 jar를 만들고
+#  2단계: 실행에 필요한 JRE와 jar만 담은 가벼운 이미지를 만들어요
+# ============================================================
+
+# ---------- 1단계: 빌드 ----------
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn -q -B dependency:go-offline
+COPY src ./src
+RUN mvn -q -B package -DskipTests
+
+# ---------- 2단계: 실행 ----------
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/target/my-sub-is-private.jar app.jar
+
+# Vercel은 기본으로 80번 포트로 요청을 보내요. Render는 PORT 값을 알아서 바꿔 넣어요.
+ENV PORT=80
+EXPOSE 80
+
+CMD ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
