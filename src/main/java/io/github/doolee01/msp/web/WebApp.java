@@ -89,6 +89,9 @@ public class WebApp {
             exitWithError("서버를 켜지 못했어요: " + e.getMessage(), "서버 로그를 확인하세요");
             return;
         }
+        // 서버는 계속 켜져 있어서 try-with-resources를 쓸 수 없어요.
+        // 대신 프로그램이 꺼질 때(정지 버튼, Render 재배포) 실행될 코드를 등록해서 커넥션 풀을 닫아요.
+        Runtime.getRuntime().addShutdownHook(new Thread(context::close));
         System.out.println("🌐 웹 서버 시작: http://localhost:" + port);
         System.out.println("💾 저장소: " + context.getStorageDescription());
     }
