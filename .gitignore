@@ -1,0 +1,19 @@
+# 빌드 결과물
+target/
+bin/
+*.class
+
+# 이클립스 개인 설정
+.metadata/
+.settings/
+.classpath
+.project
+
+# 비밀 정보 (절대 올리면 안 돼요!)
+.env
+*.env
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db

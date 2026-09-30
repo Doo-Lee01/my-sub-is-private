@@ -1,0 +1,7 @@
+target/
+bin/
+v1/
+docs/
+.git/
+.settings/
+.env
