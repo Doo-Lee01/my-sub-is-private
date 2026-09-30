@@ -14,4 +14,12 @@ public class InstaException extends RuntimeException {
     public InstaException(String message) {
         super(message);
     }
+
+    /**
+     * 다른 예외 때문에 생긴 예외일 때 원인(cause)을 함께 넘겨요. (예외 체이닝)
+     * 원인을 버리지 않아야 나중에 로그에서 "왜" 실패했는지 끝까지 따라갈 수 있어요.
+     */
+    public InstaException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

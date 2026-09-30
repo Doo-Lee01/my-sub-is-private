@@ -9,6 +9,7 @@ import java.util.Optional;
 import io.github.doolee01.msp.domain.Account;
 import io.github.doolee01.msp.domain.Handle;
 import io.github.doolee01.msp.repository.AccountRepository;
+import io.github.doolee01.msp.repository.DuplicateKeyException;
 
 /**
  * 메모리(HashMap)에 계정을 저장하는 구현체.
@@ -25,6 +26,10 @@ public class MemoryAccountRepository implements AccountRepository {
     @Override
     public synchronized Account save(Account account) {
         if (account.getId() == null) {
+            if (store.containsKey(account.getHandle())) {
+                // DB의 unique 제약과 똑같이 동작하게 맞춰요. 저장소를 바꿔도 결과가 같아야 하니까요
+                throw new DuplicateKeyException("이미 저장된 아이디예요: " + account.getHandle());
+            }
             account.assignId(nextId++);
         }
         store.put(account.getHandle(), account);
