@@ -385,6 +385,12 @@ public class WebApp {
             in.transferTo(buffer);
             byte[] bytes = buffer.toByteArray();
             ex.getResponseHeaders().set("Content-Type", contentType(path));
+            if (ex.getRequestMethod().equals("HEAD")) {
+                // HEAD 요청(Render 상태 확인 등)은 본문 없이 헤더만 보내야 해요. 로그의 WARNING을 없애요
+                ex.sendResponseHeaders(200, -1);
+                ex.close();
+                return;
+            }
             ex.sendResponseHeaders(200, bytes.length);
             try (OutputStream out = ex.getResponseBody()) {
                 out.write(bytes);

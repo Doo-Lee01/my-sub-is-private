@@ -56,7 +56,7 @@ src/main/java/io/github/doolee01/msp/
 src/main/resources/
 ├── public/index.html   웹 화면
 └── db/schema.sql       테이블 만드는 SQL
-src/test/java/          JUnit 테스트 29개
+src/test/java/          JUnit 테스트 31개
 ```
 
 <br>

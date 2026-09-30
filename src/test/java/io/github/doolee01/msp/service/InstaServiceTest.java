@@ -71,6 +71,20 @@ class InstaServiceTest {
     }
 
     @Test
+    @DisplayName("500자를 넘는 DM은 TOO_LONG으로 거절되고, 기록에는 앞 500자만 남는다")
+    void tooLongMessageIsRecordedTruncated() {
+        DmResult result = service.sendDm(DemoData.EX, DemoData.ME, "가".repeat(600), 14).getResult();
+        assertEquals(DmResult.TOO_LONG, result);
+        assertEquals(500, service.getAttempts(DemoData.ME).get(0).getContent().length());
+    }
+
+    @Test
+    @DisplayName("이모지는 한 글자로 센다 (이모지 300개 = 300자라서 도착)")
+    void emojisCountAsOneCharacter() {
+        assertEquals(DmResult.DELIVERED, service.sendDm(DemoData.EX, DemoData.ME, "💅".repeat(300), 14).getResult());
+    }
+
+    @Test
     @DisplayName("차단을 풀면 다시 DM이 도착한다")
     void unblock() {
         service.block(DemoData.ME, DemoData.EX);

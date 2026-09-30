@@ -45,6 +45,28 @@ public class DirectMessage {
         return hour;
     }
 
+    /**
+     * 글자 수. String.length()가 아니라 codePointCount를 써요.
+     * length()는 이모지 하나(💅)를 2로 세지만, DB(varchar)는 1글자로 세요.
+     * 둘이 다르게 세면 "자바는 통과, DB는 거절" 같은 어긋남이 생겨요.
+     */
+    public int length() {
+        return content.codePointCount(0, content.length());
+    }
+
+    /**
+     * 기록용 복사본. 너무 긴 메시지(TOO_LONG)도 "거절된 시도"로 남겨야 하는데,
+     * DB 칸(varchar 500)보다 길면 저장 자체가 실패해요. 그래서 앞 500자만 남긴 복사본을 만들어요.
+     * 원본은 바꾸지 않아요 (필드가 전부 final).
+     */
+    public DirectMessage truncatedForStorage() {
+        if (length() <= MAX_LENGTH) {
+            return this;
+        }
+        int end = content.offsetByCodePoints(0, MAX_LENGTH);   // 이모지를 반으로 자르지 않게 글자 단위로 계산
+        return new DirectMessage(sender, receiver, content.substring(0, end), hour);
+    }
+
     public boolean isBlank() {
         return content.trim().isEmpty();
     }
